@@ -11,7 +11,7 @@ import { modelVersions } from '../data/aiPredictions';
 import { useZones } from '../hooks/useZones';
 import { useAlerts } from '../hooks/useAlerts';
 import { usePredictions } from '../hooks/usePredictions';
-import { useSelectedZone } from '../context/SelectedZoneContext';
+import { useSelectedZone } from '../context/SelectedZonecontext';
 
 const rain = [
   { t: '00h', v: 4 }, { t: '04h', v: 9 }, { t: '08h', v: 14 }, { t: '12h', v: 22 },

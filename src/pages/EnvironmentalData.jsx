@@ -5,7 +5,7 @@ import { plannedSensors, drainColor, drainSoft } from '../data/environmental';
 import { srcStatusMeta } from '../data/aiPredictions';
 import { useEnvironmentalData } from '../hooks/useEnvironmentalData';
 import { environmentalService } from '../services/environmentalService';
-import { useSelectedZone } from '../context/SelectedZoneContext';
+import { useSelectedZone } from '../context/SelectedZonecontext';
 
 const icons = {
   rain: (

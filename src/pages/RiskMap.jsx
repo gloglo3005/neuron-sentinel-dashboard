@@ -7,7 +7,7 @@ import Sparkline from '../components/charts/Sparkline';
 import { levelOf, riskColor } from '../data/zones';
 import { useZones } from '../hooks/useZones';
 import { zonesService } from '../services/zonesService';
-import { useSelectedZone } from '../context/SelectedZoneContext';
+import { useSelectedZone } from '../context/SelectedZonecontext';
 
 // Layer control panel — spec section 6. `key: null` layers have no real
 // data source connected yet (signalements citoyens, infrastructures,

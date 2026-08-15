@@ -6,7 +6,7 @@ import AreaLineChart from '../components/charts/AreaLineChart';
 import RadialGauge from '../components/charts/RadialGauge';
 import { globalFeatures, dataSources, srcStatusMeta, featureLabels, modelVersions } from '../data/aiPredictions';
 import { usePredictions } from '../hooks/usePredictions';
-import { useSelectedZone } from '../context/SelectedZoneContext';
+import { useSelectedZone } from '../context/SelectedZonecontext';
 
 export default function AIPredictions() {
   const navigate = useNavigate();
