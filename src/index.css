@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: #F1F4F9;
+  color: #141B2C;
+  font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Manrope', sans-serif;
+}
+
+.leaflet-container {
+  font-family: 'Inter', sans-serif;
+  border-radius: 12px;
+}
+
+/* subtle scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #D6DCE6; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
