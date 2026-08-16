@@ -26,6 +26,9 @@ const navItems = [
   { to: '/alerts', label: 'Alerts', icon: (
     <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9zM13.7 21a2 2 0 01-3.4 0" />
   )},
+  { to: '/incident-reports', label: 'Signalements', icon: (
+  <path d="M12 9v4M12 17h.01M10.3 3.9L2.6 17a2 2 0 001.7 3h15.4a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
+)},
   { to: '/ai-predictions', label: 'AI Predictions', icon: (
     <path d="M12 2l2.5 5.5L20 8l-4.5 4 1 6-4.5-3-4.5 3 1-6L4 8l5.5-.5z" />
   )},

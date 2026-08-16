@@ -7,6 +7,7 @@ import Alerts from './pages/Alerts';
 import AIPredictions from './pages/AIPredictions';
 import EnvironmentalData from './pages/EnvironmentalData';
 import Reports from './pages/Reports';
+import Incidents from './pages/IncidentReports';
 import { useAuth } from './context/AuthContext';
 
 // This whole app is a single authenticated authority dashboard (see
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/ai-predictions" element={<AIPredictions />} />
         <Route path="/environmental-data" element={<EnvironmentalData />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/incident-reports" element={<IncidentReports />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
