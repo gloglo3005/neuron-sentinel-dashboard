@@ -6,12 +6,38 @@ import AreaLineChart from '../components/charts/AreaLineChart';
 import RadialGauge from '../components/charts/RadialGauge';
 import { globalFeatures, dataSources, srcStatusMeta, featureLabels, modelVersions } from '../data/aiPredictions';
 import { usePredictions } from '../hooks/usePredictions';
+import { useZones } from '../hooks/useZones';
 import { useSelectedZone } from '../context/SelectedZonecontext';
+import { predictionsService } from '../services/predictionsService';
 
 export default function AIPredictions() {
   const navigate = useNavigate();
   const { selectedZone: zoneName, setSelectedZone: setZoneName } = useSelectedZone();
-  const { zoneExplain, confidenceSeries, accuracySeries, trendDays, loading, source } = usePredictions();
+  const { zoneExplain, confidenceSeries, accuracySeries, trendDays, loading, source, refresh } = usePredictions();
+  // Needed to resolve zoneName -> zoneId for POST /predictions/generate —
+  // the backend endpoint already existed (see
+  // backend/src/controllers/predictionsController.js) but nothing in the
+  // dashboard ever called it, so predictions only ever came from seed
+  // data. Only meaningful once we're talking to the real backend (source
+  // === 'real'); in mock mode there's no zone id to generate against.
+  const { zones, source: zonesSource } = useZones();
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState(null);
+
+  async function handleGenerate() {
+    const zoneId = zones[zoneName]?.id;
+    if (!zoneId) return;
+    setGenerating(true);
+    setGenerateError(null);
+    try {
+      await predictionsService.generate(zoneId, 6);
+      await refresh();
+    } catch (err) {
+      setGenerateError(err.message || 'Une erreur est survenue.');
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   if (loading || !zoneExplain[zoneName]) {
     return (
@@ -89,10 +115,18 @@ export default function AIPredictions() {
               <select value={zoneName} onChange={(e) => setZoneName(e.target.value)} className="border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] outline-none focus:border-brand">
                 {Object.keys(zoneExplain).map((zn) => <option key={zn} value={zn}>{zn}</option>)}
               </select>
+              {zonesSource === 'real' && (
+                <Btn variant="ghost" onClick={handleGenerate} className={generating ? 'opacity-50 pointer-events-none' : ''}>
+                  {generating ? 'Génération…' : 'Générer une nouvelle prédiction'}
+                </Btn>
+              )}
               <DataSourceBadge source={source} loading={loading} />
             </div>
           }
         >
+          {generateError && (
+            <div className="mb-3 text-[12px] text-risk-high bg-risk-high-soft rounded-lg px-3 py-2">{generateError}</div>
+          )}
           {z.risk >= 40 && (
             <div className="flex items-center justify-between gap-3 mb-4 bg-ai-soft rounded-xl p-3" style={{ background: '#EFEBFD' }}>
               <div className="text-[12px] text-text-secondary max-w-md">

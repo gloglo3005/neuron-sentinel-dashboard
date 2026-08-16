@@ -58,4 +58,11 @@ export const predictionsService = {
       accuracySeries: [],
     };
   },
+  // POST /api/predictions/generate — runs the AIProvider (MOCK by default,
+  // see backend/src/services/aiService.js) for one zone and persists the
+  // result (see backend/src/controllers/predictionsController.js). The
+  // endpoint already existed server-side; nothing in the dashboard called
+  // it yet, so predictions only ever came from the seed data.
+  generate: (zoneId, horizon = 6) =>
+    apiFetch('/predictions/generate', { method: 'POST', body: JSON.stringify({ zoneId, horizon }) }),
 };
