@@ -7,7 +7,7 @@ import Alerts from './pages/Alerts';
 import AIPredictions from './pages/AIPredictions';
 import EnvironmentalData from './pages/EnvironmentalData';
 import Reports from './pages/Reports';
-import Incidents from './pages/IncidentReports';
+import IncidentReports from './pages/IncidentReports';
 import { useAuth } from './context/AuthContext';
 
 // This whole app is a single authenticated authority dashboard (see
