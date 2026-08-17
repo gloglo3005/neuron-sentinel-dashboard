@@ -42,39 +42,37 @@ const navItems = [
 
 export default function TopNav() {
   return (
-    <div className="bg-sidebar-bg px-6 h-16 flex items-center justify-between sticky top-0 z-20">
-      <div className="flex items-center gap-7 overflow-x-auto">
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="w-8 h-8 rounded-[9px] flex items-center justify-center font-display font-extrabold text-[12.5px] text-white flex-shrink-0"
-               style={{ background: 'linear-gradient(135deg, #006A4E, #12B888)' }}>
-            NS
-          </div>
-          <div className="font-display font-bold text-sm text-white leading-tight whitespace-nowrap">
-            Neuron Sentinel
-            <span className="block font-body font-normal text-[10px] text-sidebar-text mt-0.5">Flood Early Warning</span>
-          </div>
+    <div className="bg-sidebar-bg w-60 flex-shrink-0 flex flex-col h-screen sticky top-0 z-20">
+      <div className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0 border-b border-white/10">
+        <div className="w-8 h-8 rounded-[9px] flex items-center justify-center font-display font-extrabold text-[12.5px] text-white flex-shrink-0"
+             style={{ background: 'linear-gradient(135deg, #006A4E, #12B888)' }}>
+          NS
         </div>
-        <div className="flex items-center gap-0.5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium whitespace-nowrap transition-colors ${
-                  isActive ? 'bg-brand text-white' : 'text-sidebar-text hover:bg-white/5 hover:text-[#D7E4DE]'
-                }`
-              }
-            >
-              <svg viewBox={item.viewBox || '0 0 24 24'} fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4 opacity-90 flex-shrink-0">
-                {item.icon}
-              </svg>
-              {item.label}
-            </NavLink>
-          ))}
+        <div className="font-display font-bold text-sm text-white leading-tight whitespace-nowrap">
+          Neuron Sentinel
+          <span className="block font-body font-normal text-[10px] text-sidebar-text mt-0.5">Flood Early Warning</span>
         </div>
       </div>
-      <div className="hidden md:flex items-center gap-1.5 text-[11px] text-sidebar-text pl-3 border-l border-white/10">
+      <div className="flex flex-col gap-0.5 px-3 py-4 overflow-y-auto flex-1">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-colors ${
+                isActive ? 'bg-brand text-white' : 'text-sidebar-text hover:bg-white/5 hover:text-[#D7E4DE]'
+              }`
+            }
+          >
+            <svg viewBox={item.viewBox || '0 0 24 24'} fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4 opacity-90 flex-shrink-0">
+              {item.icon}
+            </svg>
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+      <div className="flex items-center gap-1.5 text-[11px] text-sidebar-text px-5 py-4 border-t border-white/10 flex-shrink-0">
         <span className="w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_0_3px_rgba(0,106,78,0.3)]" />
         Système opérationnel
       </div>

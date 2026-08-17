@@ -4,10 +4,10 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import RiskMap from './pages/RiskMap';
 import Alerts from './pages/Alerts';
+import IncidentReports from './pages/IncidentReports';
 import AIPredictions from './pages/AIPredictions';
 import EnvironmentalData from './pages/EnvironmentalData';
 import Reports from './pages/Reports';
-import IncidentReports from './pages/IncidentReports';
 import { useAuth } from './context/AuthContext';
 
 // This whole app is a single authenticated authority dashboard (see
@@ -33,18 +33,20 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex min-h-screen">
       <TopNav />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/risk-map" element={<RiskMap />} />
-        <Route path="/alerts" element={<Alerts />} />
-        <Route path="/ai-predictions" element={<AIPredictions />} />
-        <Route path="/environmental-data" element={<EnvironmentalData />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/incident-reports" element={<IncidentReports />} />
-        <Route path="/login" element={<Navigate to="/" replace />} />
-      </Routes>
+      <main className="flex-1 min-w-0">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/risk-map" element={<RiskMap />} />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/incident-reports" element={<IncidentReports />} />
+          <Route path="/ai-predictions" element={<AIPredictions />} />
+          <Route path="/environmental-data" element={<EnvironmentalData />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
     </div>
   );
 }
