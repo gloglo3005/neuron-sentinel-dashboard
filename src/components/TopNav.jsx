@@ -27,8 +27,8 @@ const navItems = [
     <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9zM13.7 21a2 2 0 01-3.4 0" />
   )},
   { to: '/incident-reports', label: 'Signalements', icon: (
-  <path d="M12 9v4M12 17h.01M10.3 3.9L2.6 17a2 2 0 001.7 3h15.4a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
-)},
+    <path d="M12 9v4M12 17h.01M10.3 3.9L2.6 17a2 2 0 001.7 3h15.4a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
+  )},
   { to: '/ai-predictions', label: 'AI Predictions', icon: (
     <path d="M12 2l2.5 5.5L20 8l-4.5 4 1 6-4.5-3-4.5 3 1-6L4 8l5.5-.5z" />
   )},
@@ -97,19 +97,6 @@ export function TopBar({ title, loc = 'Lomé, Togo' }) {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <button className="w-9 h-9 rounded-[9px] border border-border bg-surface flex items-center justify-center relative text-text-secondary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[17px] h-[17px]">
-            <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.7 21a2 2 0 01-3.4 0" />
-          </svg>
-          <span className="absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full bg-risk-high text-white text-[9px] flex items-center justify-center font-bold border-2 border-surface">3</span>
-        </button>
-        <button className="w-9 h-9 rounded-[9px] border border-border bg-surface flex items-center justify-center text-text-secondary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[17px] h-[17px]">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M21 21l-4.3-4.3" />
-          </svg>
-        </button>
         <div className="flex items-center gap-2 pl-4 border-l border-border">
           <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-white font-display font-bold text-[12.5px]"
                style={{ background: 'linear-gradient(135deg,#12B888,#006A4E)' }}>
