@@ -4,7 +4,7 @@ import { TopBar } from '../components/TopNav';
 import { Card, DataSourceBadge, Btn } from '../components/ui';
 import AreaLineChart from '../components/charts/AreaLineChart';
 import RadialGauge from '../components/charts/RadialGauge';
-import { globalFeatures, dataSources, srcStatusMeta, featureLabels, modelVersions } from '../data/aiPredictions';
+import { globalFeatures, dataSources, srcStatusMeta, featureLabels } from '../data/aiPredictions';
 import { usePredictions } from '../hooks/usePredictions';
 import { useZones } from '../hooks/useZones';
 import { useSelectedZone } from '../context/SelectedZonecontext';
@@ -176,27 +176,6 @@ export default function AIPredictions() {
             </div>
           </Card>
         </div>
-
-        <Card title="Historique des versions" subtitle="Journal des mises à jour du modèle prédictif">
-          <div className="flex flex-col">
-            {modelVersions.map((v, i) => (
-              <div key={v.v} className="flex gap-3.5">
-                <div className="flex flex-col items-center">
-                  <div className={`w-3 h-3 rounded-full mt-1 ${v.current ? 'bg-ai' : 'bg-border'}`} />
-                  {i < modelVersions.length - 1 && <div className="w-px flex-1 bg-border-soft" />}
-                </div>
-                <div className="pb-5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-display font-bold text-[13px]">{v.v}</span>
-                    {v.current && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-ai/10 text-ai" style={{ background: '#EFEBFD', color: '#6C5CE7' }}>Version active</span>}
-                  </div>
-                  <div className="text-[11px] text-text-tertiary mt-0.5">{v.date}</div>
-                  <div className="text-[12px] text-text-secondary mt-1 max-w-xl">{v.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
     </div>
   );
