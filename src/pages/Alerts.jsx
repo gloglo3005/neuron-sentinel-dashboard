@@ -38,6 +38,14 @@ export default function Alerts() {
   const { alerts, setAlerts, loading, source } = useAlerts();
   const [actionError, setActionError] = useState(null);
   const [pendingId, setPendingId] = useState(null);
+  // Guards sendCompose() the same way pendingId guards runAction() above —
+  // sendCompose *prepends* to the list on success rather than map()-ing an
+  // existing entry, so without this, a double-click (or a slow network +
+  // an impatient re-click) fires two POST /api/alerts and creates two
+  // real, distinct Alert rows — duplicate cards that persist across
+  // refreshes because they're genuinely duplicated server-side, not a
+  // rendering glitch.
+  const [composing, setComposing] = useState(false);
   const { zones, loading: zonesLoading } = useZones();
   // Derived from the live zone dataset instead of a separate hard-coded
   // table, so it always matches what the risk map is currently showing.
@@ -257,7 +265,7 @@ export default function Alerts() {
   const CHANNEL_OF = { SMS: 'SMS', Push: 'PUSH' };
 
   async function sendCompose() {
-    if (!composeZones.size) return;
+    if (!composeZones.size || composing) return;
     const zonesArr = Array.from(composeZones);
     const zoneIds = zonesArr.map((name) => zones[name]?.id).filter(Boolean);
     if (zoneIds.length !== zonesArr.length) {
@@ -265,6 +273,7 @@ export default function Alerts() {
       return;
     }
     setActionError(null);
+    setComposing(true);
     try {
       const created = await alertsService.create({
         title: `Alerte manuelle — ${zonesArr.join(', ')}`,
@@ -275,12 +284,20 @@ export default function Alerts() {
         zoneIds,
         channels: Array.from(channels).map((c) => CHANNEL_OF[c]).filter(Boolean),
       });
-      setAlerts((prev) => [created, ...prev]);
+      setAlerts((prev) => {
+        const list = prev ?? [];
+        // Defensive dedup — if the realtime 'alert.created' socket event
+        // (see useAlerts.js) already upserted this alert by the time this
+        // resolves, don't prepend a second copy.
+        return list.some((a) => a.id === created.id) ? list : [created, ...list];
+      });
       setExpandedId(created.id);
       setComposeZones(new Set());
       setMessage('');
     } catch (err) {
       setActionError(`Proposition impossible — ${err.message || 'Une erreur est survenue.'}`);
+    } finally {
+      setComposing(false);
     }
   }
 
@@ -502,8 +519,8 @@ export default function Alerts() {
                     ))}
                   </div>
                 </div>
-                <Btn variant="amber" onClick={sendCompose} className="text-center py-2.5" disabled={!composeZones.size}>
-                  Proposer l'alerte
+                <Btn variant="amber" onClick={sendCompose} className="text-center py-2.5" disabled={!composeZones.size || composing}>
+                  {composing ? 'Envoi…' : "Proposer l'alerte"}
                 </Btn>
               </div>
             )}
