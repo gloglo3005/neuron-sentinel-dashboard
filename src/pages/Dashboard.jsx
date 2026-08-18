@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TopBar } from '../components/TopNav';
 import { Card, RiskBadge, Btn, Dot, DataSourceBadge } from '../components/ui';
@@ -7,7 +7,6 @@ import BarChart from '../components/charts/BarChart';
 import AreaLineChart from '../components/charts/AreaLineChart';
 import { levelOf, riskColor, riskName } from '../data/zones';
 import { statusMeta, openStatuses } from '../data/alerts';
-import { modelVersions } from '../data/aiPredictions';
 import { useZones } from '../hooks/useZones';
 import { useAlerts } from '../hooks/useAlerts';
 import { usePredictions } from '../hooks/usePredictions';
@@ -19,11 +18,17 @@ const rain = [
 ];
 const riskSeries = [30, 32, 35, 38, 42, 48, 55, 60, 63, 66, 63, 58];
 
-const factors = [
-  { label: 'Pluviométrie intense', weight: 42, desc: '61mm cumulés en 24h, au-dessus du seuil de vigilance (50mm)', color: 'risk-high', width: 84 },
-  { label: 'Drainage insuffisant', weight: 33, desc: "Réseau d'évacuation à capacité réduite, entretien signalé en retard", color: 'risk-medium', width: 65 },
-  { label: "Historique d'inondations", weight: 25, desc: '3 épisodes de crue enregistrés dans cette zone depuis 2021', color: 'brand', width: 52 },
-];
+// Real factor keys either AI provider can produce (see aiService.js) —
+// same set as AIPredictions.jsx's global panel. Replaces a previous
+// static `factors` array that showed the same 3 invented reasons
+// ("61mm cumulés...", "3 épisodes de crue depuis 2021"...) for every
+// zone, unchanged, regardless of which quartier was actually selected.
+const FACTOR_META = {
+  rain: { label: 'Pluviométrie', color: 'risk-high' },
+  drain: { label: 'Capacité de drainage', color: 'risk-medium' },
+  hist: { label: 'Historique des crues', color: 'brand' },
+  base: { label: 'Base de référence du modèle', color: 'risk-medium' },
+};
 
 // 4-tier reading of an aggregate 0-100 score, for the "Niveau X/4" chip.
 function tierOf(avg) {
@@ -33,11 +38,21 @@ function tierOf(avg) {
   return { tier: 1, label: 'Faible' };
 }
 
+function relativeTime(iso) {
+  if (!iso) return null;
+  const diffMin = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diffMin < 1) return "à l'instant";
+  if (diffMin < 60) return `il y a ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `il y a ${diffH} h`;
+  return `il y a ${Math.round(diffH / 24)} j`;
+}
+
 export default function Dashboard() {
   const { selectedZone: selected, setSelectedZone: setSelected } = useSelectedZone();
   const { zones, zoneNames, loading: zonesLoading, source: zonesSource } = useZones();
   const { alerts, loading: alertsLoading } = useAlerts();
-  const { zoneExplain, loading: predictionsLoading } = usePredictions();
+  const { zoneExplain, modelSource, latestGeneratedAt, loading: predictionsLoading } = usePredictions();
 
   if (zonesLoading || !zones[selected]) {
     return (
@@ -68,9 +83,33 @@ export default function Dashboard() {
   const avgConfidence = confidenceValues.length
     ? Math.round(confidenceValues.reduce((s, v) => s + v, 0) / confidenceValues.length)
     : null;
-  const currentModel = modelVersions.find((v) => v.current) ?? modelVersions[0];
+  const modelLabel = modelSource === 'REMOTE' ? "Service IA de l'équipe" : modelSource === 'MOCK' ? 'Scoring interne (MOCK)' : 'Aucune prédiction';
+  const modelSynced = relativeTime(latestGeneratedAt);
 
   const topAlerts = alerts.filter((a) => openStatuses.includes(a.status)).slice(0, 3);
+
+  // Real per-zone factor breakdown for the currently selected zone (same
+  // source as AIPredictions.jsx's waterfall — see predictionsService.js).
+  // Replaces a static array that showed identical "reasons" for every
+  // zone regardless of which one was selected.
+  const zoneFactors = useMemo(() => {
+    const z = zoneExplain[selected];
+    if (!z) return [];
+    const entries = Object.keys(FACTOR_META)
+      .map((key) => ({ key, contribution: z[key] || 0 }))
+      .filter((f) => f.contribution !== 0);
+    const total = entries.reduce((s, f) => s + Math.abs(f.contribution), 0);
+    if (!total) return [];
+    return entries
+      .map((f) => ({
+        label: FACTOR_META[f.key].label,
+        color: FACTOR_META[f.key].color,
+        weight: Math.round((Math.abs(f.contribution) / total) * 100),
+        width: Math.min(100, Math.round((Math.abs(f.contribution) / total) * 100 * 2)),
+        desc: `Contribution de ${f.contribution >= 0 ? '+' : ''}${f.contribution} point${Math.abs(f.contribution) > 1 ? 's' : ''} au score de risque de ${selected}.`,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+  }, [zoneExplain, selected]);
 
   return (
     <div>
@@ -129,7 +168,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="font-display text-[25px] font-extrabold mt-2.5">{predictionsLoading || avgConfidence === null ? '—' : `${avgConfidence}%`}</div>
-            <div className="text-[11.5px] text-text-tertiary mt-1.5">Modèle {currentModel.v} — {currentModel.date}</div>
+            <div className="text-[11.5px] text-text-tertiary mt-1.5">{modelLabel}{modelSynced ? ` — ${modelSynced}` : ''}</div>
           </Card>
         </div>
 
@@ -198,8 +237,9 @@ export default function Dashboard() {
 
         {/* AI EXPLANATION */}
         <Card title="Pourquoi ce niveau de risque ?" subtitle={`Facteurs pris en compte par le modèle pour la zone ${selected}`}>
-          <div className="flex flex-col gap-3.5">
-            {factors.map((f) => (
+          {zoneFactors.length ? (
+            <div className="flex flex-col gap-3.5">
+              {zoneFactors.map((f) => (
               <div key={f.label} className="flex items-center gap-3.5">
                 <div className="w-[38px] h-[38px] rounded-[9px] flex items-center justify-center flex-shrink-0"
                      style={{ background: f.color === 'brand' ? '#E3F2ED' : (f.color === 'risk-high' ? '#FCE7E7' : '#FDF1DE'), color: f.color === 'brand' ? '#006A4E' : (f.color === 'risk-high' ? '#DC3B3B' : '#EF8F1E') }}>
@@ -217,8 +257,14 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[12px] text-text-tertiary py-2">
+              Le modèle actif ({modelSource === 'REMOTE' ? "service de l'équipe" : 'interne'}) ne renvoie pas de
+              décomposition par facteur pour {selected}.
+            </div>
+          )}
         </Card>
 
         {/* ALERTS */}

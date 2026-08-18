@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TopBar } from '../components/TopNav';
 import { Card, Btn, DataSourceBadge } from '../components/ui';
 import { plannedSensors, drainColor, drainSoft } from '../data/environmental';
@@ -6,6 +6,16 @@ import { srcStatusMeta } from '../data/aiPredictions';
 import { useEnvironmentalData } from '../hooks/useEnvironmentalData';
 import { environmentalService } from '../services/environmentalService';
 import { useSelectedZone } from '../context/SelectedZonecontext';
+
+function relativeTime(iso) {
+  if (!iso) return null;
+  const diffMin = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diffMin < 1) return "à l'instant";
+  if (diffMin < 60) return `il y a ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `il y a ${diffH} h`;
+  return `il y a ${Math.round(diffH / 24)} j`;
+}
 
 const icons = {
   rain: (
@@ -39,10 +49,32 @@ function RainChart({ observedRain, forecastRain }) {
 }
 
 export default function EnvironmentalData() {
-  const { observedRain, forecastRain, forecast5, envZones, dataFeeds, loading, source, refresh } = useEnvironmentalData();
+  const { observedRain, forecastRain, forecast5, envZones, dataFeeds, weatherSource, weatherSyncedAt, loading, source, refresh } = useEnvironmentalData();
   const { selectedZone, setSelectedZone } = useSelectedZone();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+
+  // Built from what's actually verifiable — same approach as
+  // AIPredictions.jsx's "Sources de données" panel. Only overrides the
+  // bundled mock dataFeeds when we're actually talking to the real
+  // backend (weatherSource is only ever set there — see
+  // environmentalService.js); Nominatim is a genuinely always-on free
+  // integration (see backend/src/services/geoService.js) triggered
+  // on-demand via POST /api/zones/sync-geometry, not a continuous feed,
+  // so it's labelled "à la demande" rather than a fake periodic sync time.
+  const liveDataFeeds = useMemo(() => {
+    if (!weatherSource) return dataFeeds;
+    return [
+      {
+        name: 'OpenWeatherMap',
+        meta: 'Prévisions météo — alimente pluviométrie/humidité',
+        sync: relativeTime(weatherSyncedAt) || 'inconnu',
+        status: weatherSource === 'OpenWeatherMap' ? 'ok' : 'warn',
+      },
+      { name: 'Nominatim (OSM)', meta: 'Géocodage des zones de Lomé', sync: 'à la demande', status: 'ok' },
+      { name: 'Sentinel Hub — satellite', meta: 'Amélioration future, non prioritaire', sync: 'non connecté', status: 'off' },
+    ];
+  }, [weatherSource, weatherSyncedAt, dataFeeds]);
 
   async function handleSync() {
     setSyncing(true);
@@ -151,7 +183,7 @@ export default function EnvironmentalData() {
                       </span>
                       {z.hist}%
                     </td>
-                    <td className="py-2.5 text-[11.5px] text-text-tertiary">il y a 4 min</td>
+                    <td className="py-2.5 text-[11.5px] text-text-tertiary">{relativeTime(z.updatedAt) || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -174,7 +206,7 @@ export default function EnvironmentalData() {
 
           <Card title="État des flux de données" subtitle="Connexions actives vers les sources externes">
             <div className="flex flex-col gap-2.5">
-              {dataFeeds.map((s) => {
+              {liveDataFeeds.map((s) => {
                 const sm = srcStatusMeta[s.status];
                 return (
                   <div key={s.name} className="flex items-center gap-3">

@@ -46,16 +46,35 @@ function adaptZoneExplain(rows) {
   return explain;
 }
 
+// modelVersion is either MODEL_VERSION_MOCK ('MOCK_MODEL_V1') or
+// REMOTE_MODEL_VERSION ('NEURON_SENTINEL_REMOTE_v0...') — see
+// backend/src/services/aiService.js. Never exposed to the frontend before
+// this; used so the "Sources de données" panel can honestly show whether
+// predictions are coming from the transparent internal scorer or the
+// teammate's real model, instead of a hard-coded, always-"Actif" line for
+// a source that was never actually wired up to be checked.
+function latestModelSource(rows) {
+  const latest = rows.reduce((l, p) => (!l || new Date(p.generatedAt) > new Date(l.generatedAt) ? p : l), null);
+  if (!latest) return { modelSource: null, latestGeneratedAt: null };
+  return {
+    modelSource: String(latest.modelVersion || '').includes('MOCK') ? 'MOCK' : 'REMOTE',
+    latestGeneratedAt: latest.generatedAt,
+  };
+}
+
 export const predictionsService = {
   async list(params = {}) {
     const qs = new URLSearchParams(params).toString();
     const rows = await apiFetch(`/predictions${qs ? `?${qs}` : ''}`);
+    const { modelSource, latestGeneratedAt } = latestModelSource(rows);
     return {
       zoneExplain: adaptZoneExplain(rows),
       // See comment above — no backend equivalent yet.
       trendDays: [],
       confidenceSeries: [],
       accuracySeries: [],
+      modelSource,
+      latestGeneratedAt,
     };
   },
   // POST /api/predictions/generate — runs the AIProvider (MOCK by default,

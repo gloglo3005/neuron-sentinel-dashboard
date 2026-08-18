@@ -15,6 +15,11 @@ import { apiFetch } from '../api/client';
 //    backend/src/services/weatherService.js, MOCK by default while
 //    WEATHER_API_KEY is unset). Left empty rather than shown as fabricated
 //    "REAL DATA".
+//  - weatherSource: each row already carries its own honest 'OpenWeatherMap'
+//    or 'MOCK' tag (see weatherService.js) — surfaced here (from the most
+//    recent row) instead of being discarded, so a page like AIPredictions
+//    can show a genuinely accurate "connected / not connected" status
+//    instead of a hard-coded string.
 
 function hourKey(iso) {
   const d = new Date(iso);
@@ -50,7 +55,12 @@ function buildEnvZones(envRows, zoneRows) {
     hist: Math.round(z.historyScore ?? 0),
     soil: null,
     river: null,
+    updatedAt: latestByZone[z.name]?.timestamp ?? null,
   }));
+}
+
+function latestOf(rows) {
+  return rows.reduce((latest, r) => (!latest || new Date(r.timestamp) > new Date(latest.timestamp) ? r : latest), null);
 }
 
 export const environmentalService = {
@@ -60,12 +70,15 @@ export const environmentalService = {
       apiFetch(`/environmental-data${qs ? `?${qs}` : ''}`),
       apiFetch('/zones'),
     ]);
+    const latest = latestOf(envRows);
     return {
       observedRain: buildObservedRain(envRows),
       forecastRain: [],
       forecast5: [],
       envZones: buildEnvZones(envRows, zoneRows),
       dataFeeds: [],
+      weatherSource: latest?.source ?? null,
+      weatherSyncedAt: latest?.timestamp ?? null,
     };
   },
   // POST /api/environmental-data/sync — pulls one fresh reading per zone

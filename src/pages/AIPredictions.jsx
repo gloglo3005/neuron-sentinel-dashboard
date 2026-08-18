@@ -1,19 +1,39 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TopBar } from '../components/TopNav';
 import { Card, DataSourceBadge, Btn } from '../components/ui';
 import AreaLineChart from '../components/charts/AreaLineChart';
 import RadialGauge from '../components/charts/RadialGauge';
-import { globalFeatures, dataSources, srcStatusMeta, featureLabels } from '../data/aiPredictions';
+import { srcStatusMeta, plannedDataSources, featureLabels } from '../data/aiPredictions';
 import { usePredictions } from '../hooks/usePredictions';
 import { useZones } from '../hooks/useZones';
+import { useEnvironmentalData } from '../hooks/useEnvironmentalData';
 import { useSelectedZone } from '../context/SelectedZonecontext';
 import { predictionsService } from '../services/predictionsService';
+
+// Only the 4 factors either AI provider can actually produce (see
+// backend/src/services/aiService.js) — urban/proximity are never computed
+// by the internal MOCK scorer or the remote model, so they're excluded
+// here rather than shown as if they were part of the model's real
+// behaviour (spec section 33 — never present fabricated data as real).
+const GLOBAL_FEATURE_ORDER = ['rain', 'drain', 'hist', 'base'];
+const GLOBAL_FEATURE_LABEL = { rain: 'Pluviométrie', drain: 'Capacité de drainage', hist: 'Historique des crues', base: 'Base de référence' };
+
+function relativeTime(iso) {
+  if (!iso) return null;
+  const diffMin = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diffMin < 1) return "à l'instant";
+  if (diffMin < 60) return `il y a ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `il y a ${diffH} h`;
+  return `il y a ${Math.round(diffH / 24)} j`;
+}
 
 export default function AIPredictions() {
   const navigate = useNavigate();
   const { selectedZone: zoneName, setSelectedZone: setZoneName } = useSelectedZone();
-  const { zoneExplain, confidenceSeries, accuracySeries, trendDays, loading, source, refresh } = usePredictions();
+  const { zoneExplain, confidenceSeries, accuracySeries, trendDays, modelSource, loading, source, refresh } = usePredictions();
+  const { weatherSource, weatherSyncedAt } = useEnvironmentalData();
   // Needed to resolve zoneName -> zoneId for POST /predictions/generate —
   // the backend endpoint already existed (see
   // backend/src/controllers/predictionsController.js) but nothing in the
@@ -38,6 +58,56 @@ export default function AIPredictions() {
       setGenerating(false);
     }
   }
+
+  // Real average |contribution| per factor across every currently-loaded
+  // zone, instead of a hard-coded global percentage list that didn't
+  // match what either AI provider can actually produce. Empty when the
+  // remote model is active and returns no factor breakdown at all (see
+  // aiService.js) — rendered as an honest empty state below rather than a
+  // chart of zeros.
+  const globalFeatures = useMemo(() => {
+    const zones = Object.values(zoneExplain);
+    if (!zones.length) return [];
+    const totals = GLOBAL_FEATURE_ORDER.map((key) => ({
+      key,
+      label: GLOBAL_FEATURE_LABEL[key],
+      avg: zones.reduce((sum, z) => sum + Math.abs(z[key] || 0), 0) / zones.length,
+    }));
+    const grandTotal = totals.reduce((sum, f) => sum + f.avg, 0);
+    if (grandTotal === 0) return [];
+    return totals
+      .map((f) => ({ label: f.label, val: Math.round((f.avg / grandTotal) * 100) }))
+      .filter((f) => f.val > 0)
+      .sort((a, b) => b.val - a.val);
+  }, [zoneExplain]);
+
+  // Built from what's actually verifiable right now, not a static list.
+  // Only two feeds genuinely exist in the backend today (weather, AI
+  // model) — see backend/src/services/weatherService.js and aiService.js.
+  // Fabricated entries (ANPC flood-history registry, a second weather
+  // provider, a municipal cadastre feed) had no backend behind them at
+  // all and were removed rather than "fixed", since nothing implements
+  // them yet.
+  const liveDataSources = useMemo(() => {
+    const sources = [];
+    if (weatherSource) {
+      sources.push({
+        name: 'OpenWeatherMap',
+        meta: 'Pluviométrie, humidité — alimente les prédictions',
+        sync: relativeTime(weatherSyncedAt) || 'inconnu',
+        status: weatherSource === 'OpenWeatherMap' ? 'ok' : 'warn',
+      });
+    } else {
+      sources.push({ name: 'OpenWeatherMap', meta: 'Pluviométrie, humidité — alimente les prédictions', sync: 'aucune donnée', status: 'off' });
+    }
+    sources.push({
+      name: modelSource === 'REMOTE' ? "Modèle IA — service de l'équipe" : 'Modèle IA — scoring interne (MOCK)',
+      meta: modelSource === 'REMOTE' ? 'AI_API_URL configurée côté serveur' : 'AI_API_URL non configurée — scoring transparent de repli',
+      sync: modelSource ? 'à jour' : 'aucune prédiction',
+      status: modelSource === 'REMOTE' ? 'ok' : modelSource === 'MOCK' ? 'warn' : 'off',
+    });
+    return [...sources, ...plannedDataSources];
+  }, [weatherSource, weatherSyncedAt, modelSource]);
 
   if (loading || !zoneExplain[zoneName]) {
     return (
@@ -71,22 +141,29 @@ export default function AIPredictions() {
       <div className="px-7 py-5 flex flex-col gap-4 pb-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card title="Importance des variables — modèle global" subtitle="Contribution moyenne de chaque facteur, toutes zones confondues">
-            <div className="flex flex-col gap-3">
-              {globalFeatures.map((f) => (
-                <div key={f.label} className="flex items-center gap-3">
-                  <div className="w-[150px] text-[12px] text-text-secondary flex-shrink-0">{f.label}</div>
-                  <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${f.val}%`, background: '#6C5CE7' }} />
+            {globalFeatures.length ? (
+              <div className="flex flex-col gap-3">
+                {globalFeatures.map((f) => (
+                  <div key={f.label} className="flex items-center gap-3">
+                    <div className="w-[150px] text-[12px] text-text-secondary flex-shrink-0">{f.label}</div>
+                    <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${f.val}%`, background: '#6C5CE7' }} />
+                    </div>
+                    <div className="text-[12px] font-semibold w-9 text-right">{f.val}%</div>
                   </div>
-                  <div className="text-[12px] font-semibold w-9 text-right">{f.val}%</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[12px] text-text-tertiary py-2">
+                Le modèle actif ({modelSource === 'REMOTE' ? "service de l'équipe" : 'interne'}) ne renvoie pas de
+                décomposition par facteur pour l'instant.
+              </div>
+            )}
           </Card>
 
           <Card title="Sources de données" subtitle="État des flux alimentant le modèle">
             <div className="flex flex-col gap-2.5">
-              {dataSources.map((s) => {
+              {liveDataSources.map((s) => {
                 const sm = srcStatusMeta[s.status];
                 return (
                   <div key={s.name} className="flex items-center gap-3">

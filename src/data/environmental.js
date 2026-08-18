@@ -26,10 +26,14 @@ export const plannedSensors = [
   "Tokoin — Carrefour Hôpital", "Adidogomé — Voie de contournement",
 ];
 
+// Bundled demo data — only used when useEnvironmentalData() falls back to
+// mock mode (no backend reachable at all). See src/pages/EnvironmentalData.jsx
+// for how the "État des flux de données" card is now built live instead of
+// from a hard-coded list — "WeatherAPI / Tomorrow.io" had no backend
+// integration at all and was removed rather than kept as a fake "Actif" line.
 export const dataFeeds = [
-  { name: "OpenWeather API", meta: "Prévisions météo générales", sync: "il y a 4 min", status: "ok" },
-  { name: "WeatherAPI / Tomorrow.io", meta: "Pluviométrie de précision", sync: "il y a 12 min", status: "ok" },
-  { name: "Nominatim (OSM)", meta: "Géocodage des zones de Lomé", sync: "il y a 20 min", status: "ok" },
+  { name: "OpenWeatherMap", meta: "Prévisions météo — mode MOCK (démo hors ligne)", sync: "démo", status: "warn" },
+  { name: "Nominatim (OSM)", meta: "Géocodage des zones de Lomé", sync: "à la demande", status: "ok" },
   { name: "Sentinel Hub — satellite", meta: "Amélioration future, non prioritaire", sync: "non connecté", status: "off" },
 ];
 
