@@ -54,6 +54,34 @@ export default function Dashboard() {
   const { alerts, loading: alertsLoading } = useAlerts();
   const { zoneExplain, modelSource, latestGeneratedAt, loading: predictionsLoading } = usePredictions();
 
+  // Real per-zone factor breakdown for the currently selected zone (same
+  // source as AIPredictions.jsx's waterfall — see predictionsService.js).
+  // Replaces a static array that showed identical "reasons" for every
+  // zone regardless of which one was selected.
+  // Must run on every render, including the loading one below — hooks
+  // can't be called conditionally (this used to sit after the early
+  // return, which meant one fewer hook fired on the loading render than
+  // on the loaded one → "Rendered more hooks than during the previous
+  // render." / React error #310 in production).
+  const zoneFactors = useMemo(() => {
+    const z = zoneExplain[selected];
+    if (!z) return [];
+    const entries = Object.keys(FACTOR_META)
+      .map((key) => ({ key, contribution: z[key] || 0 }))
+      .filter((f) => f.contribution !== 0);
+    const total = entries.reduce((s, f) => s + Math.abs(f.contribution), 0);
+    if (!total) return [];
+    return entries
+      .map((f) => ({
+        label: FACTOR_META[f.key].label,
+        color: FACTOR_META[f.key].color,
+        weight: Math.round((Math.abs(f.contribution) / total) * 100),
+        width: Math.min(100, Math.round((Math.abs(f.contribution) / total) * 100 * 2)),
+        desc: `Contribution de ${f.contribution >= 0 ? '+' : ''}${f.contribution} point${Math.abs(f.contribution) > 1 ? 's' : ''} au score de risque de ${selected}.`,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+  }, [zoneExplain, selected]);
+
   if (zonesLoading || !zones[selected]) {
     return (
       <div>
@@ -87,29 +115,6 @@ export default function Dashboard() {
   const modelSynced = relativeTime(latestGeneratedAt);
 
   const topAlerts = alerts.filter((a) => openStatuses.includes(a.status)).slice(0, 3);
-
-  // Real per-zone factor breakdown for the currently selected zone (same
-  // source as AIPredictions.jsx's waterfall — see predictionsService.js).
-  // Replaces a static array that showed identical "reasons" for every
-  // zone regardless of which one was selected.
-  const zoneFactors = useMemo(() => {
-    const z = zoneExplain[selected];
-    if (!z) return [];
-    const entries = Object.keys(FACTOR_META)
-      .map((key) => ({ key, contribution: z[key] || 0 }))
-      .filter((f) => f.contribution !== 0);
-    const total = entries.reduce((s, f) => s + Math.abs(f.contribution), 0);
-    if (!total) return [];
-    return entries
-      .map((f) => ({
-        label: FACTOR_META[f.key].label,
-        color: FACTOR_META[f.key].color,
-        weight: Math.round((Math.abs(f.contribution) / total) * 100),
-        width: Math.min(100, Math.round((Math.abs(f.contribution) / total) * 100 * 2)),
-        desc: `Contribution de ${f.contribution >= 0 ? '+' : ''}${f.contribution} point${Math.abs(f.contribution) > 1 ? 's' : ''} au score de risque de ${selected}.`,
-      }))
-      .sort((a, b) => b.weight - a.weight);
-  }, [zoneExplain, selected]);
 
   return (
     <div>
