@@ -215,17 +215,24 @@ export default function AIPredictions() {
             </div>
           )}
           <div className="flex flex-col gap-2.5">
-            {wfRows.map((row) => (
-              <div key={row.key} className="flex items-center gap-3">
-                <div className="w-[160px] text-[12px] font-semibold flex-shrink-0">{featureLabels[row.key]}</div>
-                <div className="flex-1 h-3.5 bg-border-soft rounded relative overflow-hidden">
-                  <div className="absolute top-0 h-full rounded" style={{ left: `${row.left}%`, width: `${row.width}%`, background: row.color }} />
-                </div>
-                <div className="w-12 text-right text-[12px] font-bold flex-shrink-0" style={{ color: row.isBase ? '#141B2C' : row.color }}>
-                  {row.isBase ? `${row.v}%` : `${row.v >= 0 ? '+' : ''}${row.v}%`}
-                </div>
+            {z.hasFactors === false ? (
+              <div className="text-[12px] text-text-tertiary py-2">
+                Le modèle actif ne renvoie pas de décomposition par facteur pour cette prédiction
+                — seul le score global ci-dessous est disponible.
               </div>
-            ))}
+            ) : (
+              wfRows.map((row) => (
+                <div key={row.key} className="flex items-center gap-3">
+                  <div className="w-[160px] text-[12px] font-semibold flex-shrink-0">{featureLabels[row.key]}</div>
+                  <div className="flex-1 h-3.5 bg-border-soft rounded relative overflow-hidden">
+                    <div className="absolute top-0 h-full rounded" style={{ left: `${row.left}%`, width: `${row.width}%`, background: row.color }} />
+                  </div>
+                  <div className="w-12 text-right text-[12px] font-bold flex-shrink-0" style={{ color: row.isBase ? '#141B2C' : row.color }}>
+                    {row.isBase ? `${row.v}%` : `${row.v >= 0 ? '+' : ''}${row.v}%`}
+                  </div>
+                </div>
+              ))
+            )}
             <div className="flex items-center gap-3 pt-2 border-t border-border-soft mt-1">
               <div className="w-[160px] text-[12px] font-bold flex-shrink-0">Score final</div>
               <div className="flex-1 h-3.5 bg-border-soft rounded relative overflow-hidden">

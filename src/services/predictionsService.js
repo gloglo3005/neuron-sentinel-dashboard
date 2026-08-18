@@ -36,6 +36,13 @@ function adaptZoneExplain(rows) {
       risk: Math.round(p.probability),
       confidence: Math.round(p.confidence),
       base: 0, rain: 0, drain: 0, hist: 0, urban: 0, proximity: 0,
+      // The remote model returns factors: [] (see aiService.js) — that's
+      // a real "no breakdown available", not a real "every factor is
+      // exactly 0". Without this flag the waterfall can't tell the two
+      // apart and renders a misleading row of six +0% bars under a
+      // 90% final score. Only the local MOCK/fallback scorer ever
+      // populates p.factors.
+      hasFactors: (p.factors || []).length > 0,
     };
     for (const f of p.factors || []) {
       const key = FACTOR_KEY[f.factor];
